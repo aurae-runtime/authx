@@ -29,7 +29,7 @@
 # ---------------------------------------------------------------------------- #
 
 all: authn authz
-cargo         =   cargo +nightly
+cargo         =   cargo
 
 .PHONY: authn
 authn: ## Build authn
