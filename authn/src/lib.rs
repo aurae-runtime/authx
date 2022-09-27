@@ -45,6 +45,7 @@ trait AuthenticatorTrait {
 
 struct Authenticator {
     ca: Vec<u8>,
+    root_dir: String,
 }
 
 impl AuthenticatorTrait for Authenticator {
@@ -63,7 +64,7 @@ impl AuthenticatorTrait for Authenticator {
         match self.ca.len() {
             0 => {
                 println!("no CA found, generating...");
-                self.ca = match generate_root_ca() {
+                self.ca = match generate_root_ca(self.root_dir.to_owned()) {
                     Ok(cert) => cert,
                     err => return err,
                 };
@@ -107,8 +108,8 @@ impl AuthenticatorTrait for Authenticator {
     }
 }
 
-fn start() -> Result<Authenticator, SomeError> {
-    let mut authenticator = Authenticator { ca: vec![] };
+fn start(root_dir: &str) -> Result<Authenticator, SomeError> {
+    let mut authenticator = Authenticator { ca: vec![], root_dir: root_dir.to_owned() };
 
     match authenticator.get_ca() {
         Ok(_) => Ok(authenticator),
@@ -120,8 +121,7 @@ pub enum SomeError {
     FailedToRunOpenssl,
 }
 
-fn generate_root_ca() -> Result<Vec<u8>, SomeError> {
-    let my_dir = env!("PWD");
+fn generate_root_ca(my_dir: String) -> Result<Vec<u8>, SomeError> {
     let ca_crt = format!("{}{}", &my_dir, "/pki/ca.crt");
     let ca_key = format!("{}{}", &my_dir, "/pki/ca.key");
     let output = Command::new("openssl")
@@ -317,7 +317,7 @@ mod tests {
 
     #[test]
     fn test_new_ca() {
-        match generate_root_ca() {
+        match generate_root_ca(env!("PWD").to_owned()) {
             Ok(x) => {
                 println!("ca:\n{:#?}", x)
             }
@@ -341,7 +341,7 @@ mod tests {
 
     #[test]
     fn test_workflow() {
-        match start() {
+        match start(env!("PWD")) {
             Ok(mut authenticator) => {
                 match authenticator.get_workload_certificate("hello") {
                     Ok(cert) => {
